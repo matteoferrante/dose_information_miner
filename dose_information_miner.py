@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--directory",required=True,help="dir where are placed all dicom structured reports")
 parser.add_argument("-o", "--output",required=True,help="name of the output csv file")
 
-args = parser.parse_args()
+args = vars(parser.parse_args())
 
 
 path=args["directory"]
