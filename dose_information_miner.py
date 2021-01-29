@@ -4,6 +4,10 @@ import pandas as pd
 import glob
 import os
 
+"""Script to mine information from structured report of TC from Telemis"""
+
+
+print(f"[INFO] Dose information miner for structured dose report of TC scans")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--directory",required=True,help="dir where are placed all dicom structured reports")
