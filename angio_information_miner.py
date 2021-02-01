@@ -9,10 +9,9 @@ import argparse
 
 """Script to mine information from html report of Angiograph """
 
-
+###to run the script write: python angio_information_miner.py -d [directory] -o [outputname]
 
 print(f"[INFO] Dose information miner for structured dose report of TC scans")
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--directory",required=True,help="dir where are placed all dicom structured reports")
 parser.add_argument("-o", "--output",required=True,help="name of the output csv file")
@@ -57,7 +56,12 @@ def mine_dose_report_info(rep):
 ###INFORMATION LOADING
 
 dir_list=os.listdir(path)
+
 dir_list=[os.path.join(path,i) for i in dir_list]
+dir_list=[i for i in dir_list if os.path.isdir(i)]
+
+print(f"[INFO] found {len(dir_list)}")
+
 
 report_list=[glob.glob(os.path.join(i,"*.htm"))[0] for i in dir_list]
 
