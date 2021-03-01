@@ -12,6 +12,8 @@ import json
 """Script to mine information from structured report of Monzino """
 
 ###to run the script write: python monzino_information_miner.py -d "R:\daniela\MATTEO_Ferrante\DOSI CCM\2021" -o ccm_report
+###to run the script write: python monzino_information_miner.py -d "D:\FISICA MEDICA\DOSI CCM\2021" -o ccm_report
+
 
 print(f"[INFO] Dose information miner for structured dose report of TC scans and angiography scans")
 parser = argparse.ArgumentParser()
@@ -290,9 +292,36 @@ ct=[]
 ct_path=[]
 angio=[]
 angio_path=[]
+dis_list=[]     #list for disambiguation
+
 for (i,dcm) in enumerate(dcm_list):
     try:
+        dis={}
         model=str(dcm[0x0008, 0x1090])
+
+
+        ## anagraphic
+
+        # Anagraphics
+        name = dcm.PatientName
+        sex = dcm.PatientSex
+        age = dcm.PatientAge
+        birthday = dcm.PatientBirthDate
+        patient_ID = dcm.PatientID
+
+        # study information
+        study_date = dcm.StudyDate
+        study_time = dcm.StudyTime
+        study_id = dcm.StudyID
+        study_description = dcm.StudyDescription
+
+        model = dcm.ManufacturerModelName
+
+        dis = {"PatientID": patient_ID, "PatientName": name, "PatientSex": sex, "PatientAge": age,
+                      "PatientBirthDate": birthday, "StudyDate": study_date, "StudyTime": study_time,
+                      "StudyDescription": study_description, "StudyID": study_id, "Model": model}
+        dis["StationName"]=dcm.StationName
+        dis_list.append(dis)
         if "CT" in model:
             ct.append(dcm)
             ct_path.append(files_list[i])
@@ -305,6 +334,8 @@ for (i,dcm) in enumerate(dcm_list):
     except Exception as e:
         print(e)
 print(f"[INFO] Disambiguation based on Manufacturer's Model Name:\nCT:\t {len(ct)}\nAngio:\t {len(angio)}\nOther:\t {len(altro)}")
+
+pd.DataFrame.from_dict(dis_list).to_csv("disambiguation.csv",index=False)
 
 #START PROCEDURE FOR CT..
 print(f"[INFO] Mining information for CT scans..")
@@ -320,7 +351,10 @@ for patient in ct:
 
 df=pd.DataFrame.from_dict(ct_info)
 
-df.to_csv(args["output"]+"_ct.csv")
+df.to_csv(args["output"]+"_ct.csv",index=False)
+
+studies=df.groupby(["PatientID","StudyDate","StudyTime"])
+print(f"[CHECK] CT files was {len(ct_path)} found {len(studies)}. These number may be different but not too far..")
 
 with open("ct_missing", "w") as outfile:
     outfile.write("\n".join(missing_ct_patients))
@@ -351,4 +385,12 @@ df.to_csv(args["output"]+"_angio.csv")
 with open("angio_missing", "w") as outfile:
     outfile.write("\n".join(missing_angio_patient))
 
+
+
+studies=df.groupby(["PatientID","StudyDate","StudyTime"])
+
+print(f"[CHECK] CT files was {len(angio_path)} found {len(studies)}. These number may be different but not too far..")
+
+
+## ADD TIME
 print(f"[END]")
