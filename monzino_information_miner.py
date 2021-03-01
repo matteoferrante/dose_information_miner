@@ -97,7 +97,7 @@ def mine_ct_information(test):
             idx_to_remove.append(i)
 
     # acquisition = [i for i in acquisition if "Angle Acquisition" not in i]
-    for r in idx_to_remove:
+    for r in sorted(idx_to_remove, reverse=True):
         del acquisition[r]
         del KV[r]
         del target_regions[r]
@@ -195,6 +195,7 @@ def mine_angio_information(patient):
     numeric = []
     units = []
     descriptions = []
+    warn=None
     try:
         for i in j["0040A730"]["Value"]:
             # second seq
@@ -218,11 +219,13 @@ def mine_angio_information(patient):
                         for m in dl:
                             descriptions += get_description(m)
 
-                    except:
-                        pass
+                    except Exception as e:
+                        warn=e
 
-            except:
-                pass
+
+            except Exception as e:
+                warn=e
+
 
         print(f"[INFO] Descriptions: {len(descriptions)} \t Numeric: {len(numeric)}")
 
@@ -235,17 +238,17 @@ def mine_angio_information(patient):
         info = d
         # for i in range(0,len(descriptions)-len(set(descriptions)),len(set(descriptions))):
         angio_dict = {"PatientID": patient_ID, "PatientName": name, "PatientSex": sex, "PatientAge": age,
-                      "PatientBirthDate": birthday, "StudyDate": study_date, "StudyTime": study_time}
+                      "PatientBirthDate": birthday, "StudyDate": study_date, "StudyTime": study_time,"StudyDescription":study_description,"StudyID":study_id,"Model":model}
         #    for j in range(len(set(descriptions))):
         # add acquisition info
         #        angio_dict[descriptions[i+j]]=numeric[i+j]
         #    info.append(angio_dict)
     except:
-        traceback.print_exc()
+       # traceback.print_exc()
         info = []
         angio_dict = {}
         print(f"[INFO] Can't find angiographic information for {patient.PatientID}")
-    return info, angio_dict
+    return info, angio_dict,warn
 
 def rearrange_angio_todict(anagraphic,data):
     angio_dict=anagraphic
@@ -282,16 +285,25 @@ print(f"[INFO] Running disambiguation to discriminate CT, RX and Angiography exa
 dcm_list=[pydicom.dcmread(i) for i in files_list]
 
 altro=[]
+altro_path=[]
 ct=[]
+ct_path=[]
 angio=[]
-for i in dcm_list:
-    model=str(i[0x0008, 0x1090])
-    if "CT" in model:
-        ct.append(i)
-    elif "Artis" in model:
-        angio.append(i)
-    else:
-        altro.append(i)
+angio_path=[]
+for (i,dcm) in enumerate(dcm_list):
+    try:
+        model=str(dcm[0x0008, 0x1090])
+        if "CT" in model:
+            ct.append(dcm)
+            ct_path.append(files_list[i])
+        elif "Artis" in model:
+            angio.append(dcm)
+            angio_path.append(files_list[i])
+        else:
+            altro.append(dcm)
+            altro_path.append(files_list[i])
+    except Exception as e:
+        print(e)
 print(f"[INFO] Disambiguation based on Manufacturer's Model Name:\nCT:\t {len(ct)}\nAngio:\t {len(angio)}\nOther:\t {len(altro)}")
 
 #START PROCEDURE FOR CT..
@@ -319,11 +331,11 @@ print(f"[INFO] Mining information for angio scans..")
 angio_data=[]
 anagraphics=[]
 missing_angio_patient=[]
-for patient in angio:
+for (i,patient) in enumerate(angio):
     #angio_data+=mine_angio_information(patient)
-    info,anagraphic=mine_angio_information(patient)
+    info,anagraphic,warn=mine_angio_information(patient)
     if len(info)==0:
-        missing_angio_patient.append(patient.PatientID)
+        missing_angio_patient.append(f"{patient.PatientID}\t {angio_path[i]}\t {warn}")
     angio_data.append(info)
     anagraphics.append(anagraphic)
 
